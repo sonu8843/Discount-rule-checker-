@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discount Rule Checker - Retail Decision Support</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    body {
+      background: #f0f4f8;
+      color: #333;
+      line-height: 1.5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    header {
+      background: #1a73e8;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+    }
+    header p {
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+    .tabs {
+      display: flex;
+      background: #e8f0fe;
+      border-bottom: 2px solid #1a73e8;
+    }
+    .tab {
+      flex: 1;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      color: #1a73e8;
+      transition: background 0.2s;
+    }
+    .tab:hover {
+      background: #d2e3fc;
+    }
+    .tab.active {
+      background: #1a73e8;
+      color: white;
+    }
+    .panel {
+      display: none;
+      padding: 25px;
+    }
+    .panel.active {
+      display: block;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #444;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+    }
+    .row {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .row .form-group {
+      flex: 1;
+      min-width: 180px;
+    }
+    button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-top: 8px;
+    }
+    button:hover {
+      background: #1557b0;
+    }
+    button.secondary {
+      background: #5f6368;
+    }
+    button.secondary:hover {
+      background: #3c4043;
+    }
+    button.success {
+      background: #0d904f;
+    }
+    button.success:hover {
+      background: #0a7040;
+    }
+    .result-box {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border-left: 5px solid #1a73e8;
+    }
+    .result-box h3 {
+      margin-bottom: 10px;
+      color: #1a73e8;
+    }
+    .result-box.success {
+      border-left-color: #0d904f;
+      background: #e6f4ea;
+    }
+    .result-box.warning {
+      border-left-color: #f9ab00;
+      background: #fef7e0;
+    }
+    .result-box.error {
+      border-left-color: #d93025;
+      background: #fce8e6;
+    }
+    .offer-item {
+      background: #f1f3f4;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .offer-item span {
+      font-size: 0.95rem;
+    }
+    .remove-btn {
+      background: #d93025;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #1a73e8;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    .highlight {
+      font-weight: bold;
+      color: #0d904f;
+    }
+    .footer {
+      text-align: center;
+      padding: 15px;
+      font-size: 0.85rem;
+      color: #666;
+      background: #f8f9fa;
+    }
+    @media (max-width: 600px) {
+      .row {
+        flex-direction: column;
+      }
+      .tab {
+        font-size: 0.85rem;
+        padding: 12px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Discount Rule Checker</h1>
+      <p>Retail Decision-Support Tool — Validate discounts, detect conflicts, calculate savings & generate reports</p>
+    </header>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('input')">1. Product & Offers</div>
+      <div class="tab" onclick="showTab('check')">2. Rule Checker</div>
+      <div class="tab" onclick="showTab('report')">3. Promotion Report</div>
+    </div>
+
+    <!-- TAB 1: INPUT -->
+    <div id="input" class="panel active">
+      <h2 style="margin-bottom:15px;color:#1a73e8;">Enter Product & Discount Offers</h2>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Product Name</label>
+          <input type="text" id="productName" placeholder="e.g. Wireless Headphones" value="Wireless Headphones">
+        </div>
+        <div class="form-group">
+          <label>Original Price (₹)</label>
+          <input type="number" id="originalPrice" min="1" step="0.01" value="2500">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Customer Type</label>
+          <select id="customerType">
+            <option value="regular">Regular Customer</option>
+            <option value="member">Loyalty Member</option>
+            <option value="new">New Customer</option>
+            <option value="student">Student</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Purchase Quantity</label>
+          <input type="number" id="quantity" min="1" value="1">
+        </div>
+      </div>
+
+      <hr style="margin:20px 0;border:none;border-top:1px solid #ddd;">
+
+      <h3 style="margin-bottom:12px;">Add Discount Offer</h3>
+      <div class="row">
+        <div class="form-group">
+          <label>Offer Name</label>
+          <input type="text" id="offerName" placeholder="e.g. Festival Sale">
+        </div>
+        <div class="form-group">
+          <label>Discount Type</label>
+          <select id="discountType">
+            <option value="percentage">Percentage (%)</option>
+            <option value="fixed">Fixed Amount (₹)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Discount Value</label>
+          <input type="number" id="discountValue" min="0" step="0.01" placeholder="e.g. 15">
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>Min Quantity Required</label>
+          <input type="number" id="minQty" min="1" value="1">
+        </div>
+        <div class="form-group">
+          <label>Eligible Customer Types</label>
+          <select id="eligibleTypes" multiple style="height:80px;">
+            <option value="regular" selected>Regular</option>
+            <option value="member" selected>Member</option>
+            <option value="new" selected>New</option>
+            <option value="student" selected>Student</option>
+          </select>
+          <small style="color:#666;">Hold Ctrl/Cmd to select multiple</small>
+        </div>
+      </div>
+      <button onclick="addOffer()">+ Add Offer</button>
+      <button class="secondary" onclick="clearOffers()">Clear All Offers</button>
+
+      <div id="offersList" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- TAB 2: RULE CHECKER -->
+    <div id="check" class="panel">
+      <h2 style="margin-bottom:15px;color:#1a73e8;">Discount Rule Checker</h2>
+      <p style="margin-bottom:15px;color:#555;">Click the buttons below to analyze the offers you added.</p>
+
+      <button onclick="validateDiscounts()">Validate Discounts</button>
+      <button onclick="detectConflicts()">Detect Offer Conflicts</button>
+      <button onclick="checkEligibility()">Check Eligibility</button>
+      <button class="success" onclick="calculateSavings()">Calculate Savings</button>
+
+      <div id="checkResults"></div>
+    </div>
+
+    <!-- TAB 3: REPORT -->
+    <div id="report" class="panel">
+      <h2 style="margin-bottom:15px;color:#1a73e8;">Promotion Report</h2>
+      <p style="margin-bottom:15px;color:#555;">Generate a complete summary and recommendations.</p>
+
+      <button class="success" onclick="generateReport()">Generate Full Report</button>
+      <button class="secondary" onclick="printReport()">Print / Save as PDF</button>
+
+      <div id="reportContent"></div>
+    </div>
+
+    <div class="footer">
+      Discount Rule Checker — Simple Decision-Support Project for 2nd Year IT Students<br>
+      Built with HTML + CSS + JavaScript (No frameworks)
+    </div>
+  </div>
+
+  <script>
+    // ========== DATA STORAGE ==========
+    let offers = [];
+
+    // ========== TAB SWITCHING ==========
+    function showTab(tabId) {
+      // Hide all panels
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+      // Show selected
+      document.getElementById(tabId).classList.add('active');
+
+      // Highlight correct tab
+      const tabs = document.querySelectorAll('.tab');
+      if (tabId === 'input') tabs[0].classList.add('active');
+      if (tabId === 'check') tabs[1].classList.add('active');
+      if (tabId === 'report') tabs[2].classList.add('active');
+    }
+
+    // ========== ADD OFFER ==========
+    function addOffer() {
+      const name = document.getElementById('offerName').value.trim();
+      const type = document.getElementById('discountType').value;
+      const value = parseFloat(document.getElementById('discountValue').value);
+      const minQty = parseInt(document.getElementById('minQty').value) || 1;
+      const select = document.getElementById('eligibleTypes');
+      const eligible = Array.from(select.selectedOptions).map(o => o.value);
+
+      // Simple validation
+      if (!name) {
+        alert('Please enter Offer Name');
+        return;
+      }
+      if (isNaN(value) || value <= 0) {
+        alert('Please enter a valid Discount Value greater than 0');
+        return;
+      }
+      if (type === 'percentage' && value > 100) {
+        alert('Percentage discount cannot be more than 100%');
+        return;
+      }
+      if (eligible.length === 0) {
+        alert('Please select at least one eligible customer type');
+        return;
+      }
+
+      const offer = {
+        id: Date.now(),
+        name: name,
+        type: type,
+        value: value,
+        minQty: minQty,
+        eligible: eligible
+      };
+
+      offers.push(offer);
+      renderOffers();
+
+      // Clear inputs
+      document.getElementById('offerName').value = '';
+      document.getElementById('discountValue').value = '';
+      document.getElementById('minQty').value = 1;
+    }
+
+    function renderOffers() {
+      const list = document.getElementById('offersList');
+      if (offers.length === 0) {
+        list.innerHTML = '<p style="color:#666;">No offers added yet.</p>';
+        return;
+      }
+
+      let html = '<h3 style="margin-bottom:10px;">Current Offers (' + offers.length + ')</h3>';
+      offers.forEach(o => {
+        const typeText = o.type === 'percentage' ? o.value + '%' : '₹' + o.value;
+        const eligibleText = o.eligible.join(', ');
+        html += `
+          <div class="offer-item">
+            <span>
+              <strong>${o.name}</strong> — ${typeText} off
+              (Min Qty: ${o.minQty}) | Eligible: ${eligibleText}
+            </span>
+            <button class="remove-btn" onclick="removeOffer(${o.id})">Remove</button>
+          </div>
+        `;
+      });
+      list.innerHTML = html;
+    }
+
+    function removeOffer(id) {
+      offers = offers.filter(o => o.id !== id);
+      renderOffers();
+    }
+
+    function clearOffers() {
+      if (offers.length === 0) return;
+      if (confirm('Clear all offers?')) {
+        offers = [];
+        renderOffers();
+      }
+    }
+
+    // ========== HELPER: Get product data ==========
+    function getProductData() {
+      return {
+        name: document.getElementById('productName').value.trim() || 'Unknown Product',
+        price: parseFloat(document.getElementById('originalPrice').value) || 0,
+        customer: document.getElementById('customerType').value,
+        qty: parseInt(document.getElementById('quantity').value) || 1
+      };
+    }
+
+    // ========== 1. VALIDATE DISCOUNTS ==========
+    function validateDiscounts() {
+      const box = document.getElementById('checkResults');
+      const data = getProductData();
+
+      if (offers.length === 0) {
+        box.innerHTML = '<div class="result-box error"><h3>Validation Failed</h3><p>No offers added. Please add at least one offer first.</p></div>';
+        return;
+      }
+
+      let messages = [];
+      let hasError = false;
+
+      offers.forEach((o, index) => {
+        let status = 'Valid';
+        let note = '';
+
+        if (o.type === 'percentage') {
+          if (o.value <= 0 || o.value > 100) {
+            status = 'Invalid';
+            note = 'Percentage must be between 1 and 100.';
+            hasError = true;
+          } else if (o.value > 50) {
+            note = 'High discount (>50%). Check with manager.';
+          }
+        } else {
+          if (o.value <= 0) {
+            status = 'Invalid';
+            note = 'Fixed amount must be greater than 0.';
+            hasError = true;
+          } else if (o.value >= data.price) {
+            status = 'Invalid';
+            note = 'Fixed discount cannot be greater than or equal to product price.';
+            hasError = true;
+          }
+        }
+
+        if (o.minQty < 1) {
+          status = 'Invalid';
+          note = 'Minimum quantity must be at least 1.';
+          hasError = true;
+        }
+
+        messages.push(`<li><strong>${o.name}</strong>: ${status} ${note ? '— ' + note : ''}</li>`);
+      });
+
+      const cls = hasError ? 'error' : 'success';
+      const title = hasError ? 'Some discounts have problems' : 'All discounts are valid';
+
+      box.innerHTML = `
+        <div class="result-box ${cls}">
+          <h3>${title}</h3>
+          <ul style="margin-left:20px;margin-top:10px;">
+            ${messages.join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    // ========== 2. DETECT CONFLICTS ==========
+    function detectConflicts() {
+      const box = document.getElementById('checkResults');
+
+      if (offers.length < 2) {
+        box.innerHTML = '<div class="result-box warning"><h3>Conflict Check</h3><p>Need at least 2 offers to detect conflicts. Add more offers.</p></div>';
+        return;
+      }
+
+      let conflicts = [];
+
+      // Simple rules for conflict detection
+      // Rule 1: Two percentage discounts on same product (usually not allowed together)
+      const percentOffers = offers.filter(o => o.type === 'percentage');
+      if (percentOffers.length > 1) {
+        conflicts.push('Multiple percentage discounts found. Usually only one % discount can be applied at a time.');
+      }
+
+      // Rule 2: High total discount risk
+      let totalPossiblePercent = 0;
+      offers.forEach(o => {
+        if (o.type === 'percentage') totalPossiblePercent += o.value;
+        else totalPossiblePercent += (o.value / (getProductData().price || 1)) * 100;
+      });
+      if (totalPossiblePercent > 60) {
+        conflicts.push('Combined discounts may exceed 60%. This can hurt profit margins.');
+      }
+
+      // Rule 3: Same min quantity + overlapping eligibility
+      for (let i = 0; i < offers.length; i++) {
+        for (let j = i + 1; j < offers.length; j++) {
+          const a = offers[i];
+          const b = offers[j];
+          const commonEligible = a.eligible.filter(e => b.eligible.includes(e));
+          if (a.minQty === b.minQty && commonEligible.length > 0) {
+            conflicts.push(`"${a.name}" and "${b.name}" have same min quantity (${a.minQty}) and overlapping customer types (${commonEligible.join(', ')}). Customer may get confused which to use.`);
+          }
+        }
+      }
+
+      if (conflicts.length === 0) {
+        box.innerHTML = `
+          <div class="result-box success">
+            <h3>No Major Conflicts Detected</h3>
+            <p>The current offers look compatible with each other under basic retail rules.</p>
+          </div>
+        `;
+      } else {
+        box.innerHTML = `
+          <div class="result-box warning">
+            <h3>Potential Conflicts Found (${conflicts.length})</h3>
+            <ul style="margin-left:20px;margin-top:10px;">
+              ${conflicts.map(c => '<li>' + c + '</li>').join('')}
+            </ul>
+            <p style="margin-top:12px;"><strong>Recommendation:</strong> Keep only the best offer or clearly mark which offers can be combined.</p>
+          </div>
+        `;
+      }
+    }
+
+    // ========== 3. ELIGIBILITY CHECK ==========
+    function checkEligibility() {
+      const box = document.getElementById('checkResults');
+      const data = getProductData();
+
+      if (offers.length === 0) {
+        box.innerHTML = '<div class="result-box error"><h3>No Offers</h3><p>Add offers first.</p></div>';
+        return;
+      }
+
+      let html = '<div class="result-box"><h3>Eligibility Results for "' + data.customer + '" customer</h3><ul style="margin-left:20px;margin-top:10px;">';
+
+      let eligibleCount = 0;
+      offers.forEach(o => {
+        const isEligible = o.eligible.includes(data.customer);
+        const qtyOk = data.qty >= o.minQty;
+
+        if (isEligible && qtyOk) {
+          eligibleCount++;
+          html += `<li style="color:#0d904f;"><strong>${o.name}</strong>: Eligible (customer type OK + quantity OK)</li>`;
+        } else {
+          let reason = [];
+          if (!isEligible) reason.push('customer type not allowed');
+          if (!qtyOk) reason.push('quantity less than minimum (' + o.minQty + ')');
+          html += `<li style="color:#d93025;"><strong>${o.name}</strong>: Not eligible — ${reason.join(' and ')}</li>`;
+        }
+      });
+
+      html += '</ul>';
+      if (eligibleCount === 0) {
+        html += '<p style="margin-top:12px;color:#d93025;"><strong>Recommendation:</strong> No offers match this customer. Consider adding a general offer or changing eligibility rules.</p>';
+      } else {
+        html += '<p style="margin-top:12px;color:#0d904f;"><strong>Recommendation:</strong> ' + eligibleCount + ' offer(s) can be applied. Show the best one to the customer.</p>';
+      }
+      html += '</div>';
+
+      box.innerHTML = html;
+    }
+
+    // ========== 4. CALCULATE SAVINGS ==========
+    function calculateSavings() {
+      const box = document.getElementById('checkResults');
+      const data = getProductData();
+
+      if (offers.length === 0) {
+        box.innerHTML = '<div class="result-box error"><h3>No Offers</h3><p>Add offers first.</p></div>';
+        return;
+      }
+      if (data.price <= 0) {
+        box.innerHTML = '<div class="result-box error"><h3>Invalid Price</h3><p>Enter a valid original price.</p></div>';
+        return;
+      }
+
+      let results = [];
+      let bestSaving = 0;
+      let bestOffer = null;
+
+      offers.forEach(o => {
+        const isEligible = o.eligible.includes(data.customer) && data.qty >= o.minQty;
+        let discountAmount = 0;
+
+        if (isEligible) {
+          if (o.type === 'percentage') {
+            discountAmount = (data.price * o.value / 100) * data.qty;
+          } else {
+            discountAmount = o.value * data.qty;
+          }
+          // Cap discount so it never exceeds total price
+          const maxDiscount = data.price * data.qty;
+          if (discountAmount > maxDiscount) discountAmount = maxDiscount;
+        }
+
+        const finalPrice = (data.price * data.qty) - discountAmount;
+        const savingPercent = data.price > 0 ? (discountAmount / (data.price * data.qty) * 100).toFixed(1) : 0;
+
+        results.push({
+          name: o.name,
+          eligible: isEligible,
+          discount: discountAmount,
+          final: finalPrice,
+          percent: savingPercent
+        });
+
+        if (isEligible && discountAmount > bestSaving) {
+          bestSaving = discountAmount;
+          bestOffer = o.name;
+        }
+      });
+
+      let html = `
+        <div class="result-box success">
+          <h3>Savings Calculation</h3>
+          <p><strong>Product:</strong> ${data.name} | <strong>Original Total:</strong> ₹${(data.price * data.qty).toFixed(2)} (${data.qty} × ₹${data.price})</p>
+          <table>
+            <tr>
+              <th>Offer</th>
+              <th>Eligible?</th>
+              <th>Discount Amount</th>
+              <th>Final Price</th>
+              <th>You Save</th>
+            </tr>
+      `;
+
+      results.forEach(r => {
+        html += `
+          <tr>
+            <td>${r.name}</td>
+            <td>${r.eligible ? 'Yes' : 'No'}</td>
+            <td>₹${r.discount.toFixed(2)}</td>
+            <td>₹${r.final.toFixed(2)}</td>
+            <td class="highlight">${r.percent}%</td>
+          </tr>
+        `;
+      });
+
+      html += '</table>';
+
+      if (bestOffer) {
+        html += `<p style="margin-top:15px;"><strong>Best Offer:</strong> "${bestOffer}" — Customer saves <span class="highlight">₹${bestSaving.toFixed(2)}</span></p>`;
+        html += `<p><strong>Recommendation:</strong> Apply the best eligible offer to maximize customer satisfaction while keeping rules clear.</p>`;
+      } else {
+        html += `<p style="margin-top:15px;color:#d93025;"><strong>No eligible offers</strong> for this customer/quantity combination.</p>`;
+      }
+
+      html += '</div>';
+      box.innerHTML = html;
+    }
+
+    // ========== 5. GENERATE REPORT ==========
+    function generateReport() {
+      const box = document.getElementById('reportContent');
+      const data = getProductData();
+
+      if (offers.length === 0) {
+        box.innerHTML = '<div class="result-box error"><h3>Cannot generate report</h3><p>Please add at least one offer in the first tab.</p></div>';
+        return;
+      }
+
+      // Reuse calculation logic
+      let bestSaving = 0;
+      let bestOfferName = 'None';
+      let eligibleOffers = 0;
+
+      offers.forEach(o => {
+        const isEligible = o.eligible.includes(data.customer) && data.qty >= o.minQty;
+        if (isEligible) {
+          eligibleOffers++;
+          let disc = 0;
+          if (o.type === 'percentage') disc = (data.price * o.value / 100) * data.qty;
+          else disc = o.value * data.qty;
+          if (disc > bestSaving) {
+            bestSaving = disc;
+            bestOfferName = o.name;
+          }
+        }
+      });
+
+      const originalTotal = data.price * data.qty;
+      const finalTotal = originalTotal - bestSaving;
+
+      // Simple conflict count
+      let conflictNotes = [];
+      const percentCount = offers.filter(o => o.type === 'percentage').length;
+      if (percentCount > 1) conflictNotes.push('Multiple percentage discounts present');
+      if (offers.length > 3) conflictNotes.push('Many offers may confuse customers');
+
+      const now = new Date().toLocaleString();
+
+      let html = `
+        <div class="result-box" id="printableReport">
+          <h3 style="text-align:center;margin-bottom:5px;">Promotion Analysis Report</h3>
+          <p style="text-align:center;color:#666;margin-bottom:20px;">Generated on ${now}</p>
+
+          <h4 style="color:#1a73e8;margin-bottom:8px;">1. Product Summary</h4>
+          <table>
+            <tr><th>Field</th><th>Value</th></tr>
+            <tr><td>Product Name</td><td>${data.name}</td></tr>
+            <tr><td>Original Unit Price</td><td>₹${data.price.toFixed(2)}</td></tr>
+            <tr><td>Quantity</td><td>${data.qty}</td></tr>
+            <tr><td>Original Total</td><td>₹${originalTotal.toFixed(2)}</td></tr>
+            <tr><td>Customer Type</td><td>${data.customer}</td></tr>
+          </table>
+
+          <h4 style="color:#1a73e8;margin:20px 0 8px;">2. Offers Overview</h4>
+          <table>
+            <tr>
+              <th>#</th>
+              <th>Offer Name</th>
+              <th>Type</th>
+              <th>Value</th>
+              <th>Min Qty</th>
+              <th>Eligible Types</th>
+            </tr>
+      `;
+
+      offers.forEach((o, i) => {
+        const val = o.type === 'percentage' ? o.value + '%' : '₹' + o.value;
+        html += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${o.name}</td>
+            <td>${o.type}</td>
+            <td>${val}</td>
+            <td>${o.minQty}</td>
+            <td>${o.eligible.join(', ')}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </table>
+
+          <h4 style="color:#1a73e8;margin:20px 0 8px;">3. Decision Support Summary</h4>
+          <ul style="margin-left:20px;">
+            <li>Total Offers Created: <strong>${offers.length}</strong></li>
+            <li>Eligible Offers for this customer: <strong>${eligibleOffers}</strong></li>
+            <li>Best Recommended Offer: <strong>${bestOfferName}</strong></li>
+            <li>Maximum Saving: <strong class="highlight">₹${bestSaving.toFixed(2)}</strong></li>
+            <li>Final Price after Best Offer: <strong>₹${finalTotal.toFixed(2)}</strong></li>
+          </ul>
+
+          <h4 style="color:#1a73e8;margin:20px 0 8px;">4. Recommendations</h4>
+          <ul style="margin-left:20px;">
+      `;
+
+      if (eligibleOffers === 0) {
+        html += '<li>No offer matches the current customer. Widen eligibility or create a general discount.</li>';
+      } else {
+        html += `<li>Promote "<strong>${bestOfferName}</strong>" as the primary offer — it gives the highest saving.</li>`;
+      }
+
+      if (conflictNotes.length > 0) {
+        conflictNotes.forEach(n => {
+          html += `<li>Warning: ${n}. Consider simplifying the offer set.</li>`;
+        });
+      } else {
+        html += '<li>No major conflicts detected between offers.</li>';
+      }
+
+      if (bestSaving / originalTotal > 0.4) {
+        html += '<li>Discount is quite high (>40%). Verify profit margin is still acceptable.</li>';
+      }
+
+      html += `
+            <li>Always display final price clearly to the customer to build trust.</li>
+            <li>Keep offer names short and clear (e.g. "15% Festival Off").</li>
+          </ul>
+
+          <p style="margin-top:25px;text-align:center;font-size:0.9rem;color:#666;">
+            End of Report — Discount Rule Checker
+          </p>
+        </div>
+      `;
+
+      box.innerHTML = html;
+    }
+
+    function printReport() {
+      const content = document.getElementById('printableReport');
+      if (!content) {
+        alert('Please generate the report first.');
+        return;
+      }
+      const win = window.open('', '', 'width=800,height=600');
+      win.document.write('<html><head><title>Promotion Report</title>');
+      win.document.write('<style>body{font-family:Arial;padding:20px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ccc;padding:8px;} th{background:#1a73e8;color:white;}</style>');
+      win.document.write('</head><body>');
+      win.document.write(content.innerHTML);
+      win.document.write('</body></html>');
+      win.document.close();
+      win.print();
+    }
+
+    // Initial render
+    renderOffers();
+  </script>
+</body>
+</html>
